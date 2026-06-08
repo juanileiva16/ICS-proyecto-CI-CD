@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Predicción Mundial 2026</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="contenedor">
+    <h1>🏆 ¿Quién gana el Mundial 2026?</h1>
+    <p class="subtitulo">Hacé tu predicción del campeón.</p>
+
+    <form id="form-prediccion">
+      <label for="usuario">Tu nombre</label>
+      <input type="text" id="usuario" name="usuario" placeholder="Ej: Juani" required />
+
+      <label for="equipo">Tu campeón</label>
+      <select id="equipo" name="equipo" required>
+        <option value="">Cargando equipos...</option>
+      </select>
+
+      <button type="submit">Predecir</button>
+    </form>
+
+    <p id="mensaje" class="mensaje" role="status"></p>
+
+    <section class="ranking">
+      <h2>Ranking de votos</h2>
+      <ol id="ranking-lista">
+        <li class="vacio">Todavía no hay predicciones.</li>
+      </ol>
+    </section>
+  </main>
+
+  <script src="main.js"></script>
+</body>
+</html>

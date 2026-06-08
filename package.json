@@ -1,0 +1,37 @@
+{
+  "name": "mundial-2026-prediccion",
+  "version": "1.0.0",
+  "description": "App simple para predecir el campeón del Mundial de Fútbol 2026, usada como base para un entorno de CI/CD.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "build": "node scripts/build-check.js",
+    "test": "jest --runInBand",
+    "test:coverage": "jest --coverage --runInBand",
+    "lint": "eslint src tests"
+  },
+  "keywords": [
+    "ci",
+    "cd",
+    "mundial",
+    "2026",
+    "express"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.4"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/server.js"
+    ]
+  }
+}
