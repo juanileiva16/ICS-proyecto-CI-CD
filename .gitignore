@@ -11,8 +11,13 @@ npm-debug.log*
 # Variables de entorno
 .env
 
+# Vercel (config local generada al enlazar el proyecto)
+.vercel
+
 # Sistema operativo / editor
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+
+.vercel
