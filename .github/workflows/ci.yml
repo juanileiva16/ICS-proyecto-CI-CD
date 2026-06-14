@@ -49,3 +49,51 @@ jobs:
       # 6. Tests: corre la suite de Jest. Si algún test falla, el CI falla.
       - name: Tests
         run: npm test
+
+  # ──────────────────────────────────────────────────────────────
+  # Segundo job: despliega a Vercel.
+  # ──────────────────────────────────────────────────────────────
+  deploy:
+    # "needs: ci" => este job espera a que el job "ci" termine BIEN.
+    # Si lint/build/tests fallan, deploy NO se ejecuta. Ese es el candado.
+    needs: ci
+
+    # "if" => solo desplegamos en un push a main (ej: al fusionar una PR).
+    # En las Pull Requests se corren los tests, pero NO se despliega.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    runs-on: ubuntu-latest
+
+    # La CLI de Vercel lee estos dos IDs automáticamente desde el entorno.
+    # Los valores salen de los secrets que cargaste en GitHub (nunca quedan
+    # escritos en texto plano en el repo).
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+    steps:
+      # Volvemos a clonar el repo: cada job arranca en una máquina limpia.
+      - name: Clonar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Instalamos la CLI de Vercel en la máquina virtual.
+      - name: Instalar Vercel CLI
+        run: npm install -g vercel
+
+      # 1) Descarga la configuración del proyecto Vercel (entorno producción).
+      - name: Descargar configuración de Vercel
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      # 2) Construye el paquete de producción listo para desplegar.
+      - name: Build de producción
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      # 3) Sube el paquete ya construido y lo publica en producción.
+      #    "--prebuilt" usa lo que armó el paso anterior (no reconstruye).
+      - name: Desplegar a producción
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
