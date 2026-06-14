@@ -1,0 +1,51 @@
+# Nombre del workflow: aparece en la pestaña "Actions" de GitHub.
+name: CI
+
+# "on" define QUÉ eventos disparan este workflow.
+on:
+  # Cuando se hace push directo a la rama main (ej: al fusionar una PR).
+  push:
+    branches: [ main ]
+  # Cuando se abre o actualiza una Pull Request que apunta a main.
+  # Este es el que valida tus cambios ANTES de fusionarlos.
+  pull_request:
+    branches: [ main ]
+
+# Un workflow tiene uno o más "jobs". Cada job corre en una máquina virtual limpia.
+jobs:
+  ci:
+    # La máquina virtual donde corre todo: la última versión de Ubuntu.
+    runs-on: ubuntu-latest
+
+    # Un job es una secuencia de "steps" (pasos). Se ejecutan en orden,
+    # y si uno falla, el job entero falla (la 🟥 que verás en GitHub).
+    steps:
+      # 1. Descarga tu código del repo a la máquina virtual.
+      - name: Clonar el repositorio
+        uses: actions/checkout@v4
+
+      # 2. Instala Node.js. "cache: npm" guarda las dependencias entre
+      #    ejecuciones para que el CI sea más rápido la próxima vez.
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # 3. Instala las dependencias. "npm ci" es como "npm install" pero
+      #    pensado para CI: usa el package-lock.json exacto y es más rápido
+      #    y reproducible.
+      - name: Instalar dependencias
+        run: npm ci
+
+      # 4. Análisis estático: revisa el estilo y errores comunes del código.
+      - name: Lint
+        run: npm run lint
+
+      # 5. Build: verifica que todos los módulos cargan sin errores.
+      - name: Build
+        run: npm run build
+
+      # 6. Tests: corre la suite de Jest. Si algún test falla, el CI falla.
+      - name: Tests
+        run: npm test
