@@ -51,10 +51,13 @@ jobs:
         run: npm test
 
       # 7. FEEDBACK (1ª flecha del diagrama): avisa a Discord el resultado
-      #    de la integración. "if: always()" hace que este paso corra SIEMPRE,
-      #    incluso si un paso anterior falló (si no, nunca te avisaría de errores).
+      #    de la integración, pero SOLO cuando aporta algo:
+      #      - En Pull Requests: es el único feedback (no hay deploy).
+      #      - O cuando algo FALLÓ: para enterarte aunque no se despliegue.
+      #    En un push a main exitoso NO avisa acá (sería redundante):
+      #    de eso se encarga la notificación del job "deploy".
       - name: Feedback a Discord (integración y pruebas)
-        if: always()
+        if: github.event_name == 'pull_request' || failure()
         run: |
           if [ "${{ job.status }}" = "success" ]; then
             ESTADO="✅ Integración OK — lint, build y tests pasaron"
