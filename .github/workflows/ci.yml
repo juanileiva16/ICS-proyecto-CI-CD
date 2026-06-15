@@ -50,6 +50,21 @@ jobs:
       - name: Tests
         run: npm test
 
+      # 7. FEEDBACK (1ª flecha del diagrama): avisa a Discord el resultado
+      #    de la integración. "if: always()" hace que este paso corra SIEMPRE,
+      #    incluso si un paso anterior falló (si no, nunca te avisaría de errores).
+      - name: Feedback a Discord (integración y pruebas)
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            ESTADO="✅ Integración OK — lint, build y tests pasaron"
+          else
+            ESTADO="❌ Integración FALLÓ — revisar lint/build/tests"
+          fi
+          curl -s -H "Content-Type: application/json" \
+            -d "{\"content\":\"$ESTADO\n**Repo:** ${{ github.repository }}\n**Rama:** ${{ github.ref_name }}\n**Commit:** \`${{ github.sha }}\`\n**Detalle:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+            "${{ secrets.DISCORD_WEBHOOK }}"
+
   # ──────────────────────────────────────────────────────────────
   # Segundo job: despliega a Vercel.
   # ──────────────────────────────────────────────────────────────
@@ -97,3 +112,17 @@ jobs:
       #    "--prebuilt" usa lo que armó el paso anterior (no reconstruye).
       - name: Desplegar a producción
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      # FEEDBACK (2ª flecha del diagrama): avisa a Discord el resultado
+      #    del despliegue al entorno de entrega (Vercel).
+      - name: Feedback a Discord (despliegue)
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            ESTADO="🚀 Despliegue a producción OK — app en línea"
+          else
+            ESTADO="❌ Despliegue FALLÓ — revisar el job de deploy"
+          fi
+          curl -s -H "Content-Type: application/json" \
+            -d "{\"content\":\"$ESTADO\n**Repo:** ${{ github.repository }}\n**Commit:** \`${{ github.sha }}\`\n**Detalle:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+            "${{ secrets.DISCORD_WEBHOOK }}"
