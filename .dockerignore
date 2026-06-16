@@ -1,0 +1,17 @@
+# Dependencias: se reinstalan dentro de la imagen con "npm ci".
+node_modules
+
+# Reportes y artefactos que no hacen falta en producción.
+coverage
+
+# Metadatos de git y configuración de CI/herramientas.
+.git
+.github
+.vercel
+
+# Tests y archivos de desarrollo (no se ejecutan en la imagen final).
+tests
+
+# Variables de entorno locales y logs.
+.env
+*.log

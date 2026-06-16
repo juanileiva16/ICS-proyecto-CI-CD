@@ -61,3 +61,23 @@ Ejemplo de body para `POST /api/predicciones`:
 ```json
 { "usuario": "Juani", "equipo": "Argentina" }
 ```
+
+## Docker
+
+La app se empaqueta en una imagen Docker (ver `Dockerfile`). El pipeline la
+construye en cada PR (para verificar) y la **publica** en GitHub Container
+Registry al fusionar a `main`.
+
+Para construir y correr la imagen localmente:
+
+```bash
+docker build -t mundial-2026 .
+docker run -p 3001:3001 mundial-2026   # -> http://localhost:3001
+```
+
+Para usar la imagen ya publicada:
+
+```bash
+docker pull ghcr.io/juanileiva16/mundial-2026-prediccion:latest
+docker run -p 3001:3001 ghcr.io/juanileiva16/mundial-2026-prediccion:latest
+```
