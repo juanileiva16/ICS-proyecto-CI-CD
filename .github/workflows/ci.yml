@@ -21,8 +21,13 @@ jobs:
     # y si uno falla, el job entero falla (la 🟥 que verás en GitHub).
     steps:
       # 1. Descarga tu código del repo a la máquina virtual.
+      #    "fetch-depth: 0" trae TODO el historial de commits (no un clon
+      #    superficial). SonarQube lo necesita para ubicar correctamente la
+      #    antigüedad y autoría de cada problema que detecta.
       - name: Clonar el repositorio
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # 2. Instala Node.js. "cache: npm" guarda las dependencias entre
       #    ejecuciones para que el CI sea más rápido la próxima vez.
@@ -46,11 +51,22 @@ jobs:
       - name: Build
         run: npm run build
 
-      # 6. Tests: corre la suite de Jest. Si algún test falla, el CI falla.
-      - name: Tests
-        run: npm test
+      # 6. Tests CON cobertura: corre Jest y además genera el reporte
+      #    coverage/lcov.info, que en el paso siguiente le pasamos a Sonar.
+      #    Si algún test falla, el CI falla igual que antes.
+      - name: Tests con cobertura
+        run: npm run test:coverage
 
-      # 7. FEEDBACK (1ª flecha del diagrama): avisa a Discord el resultado
+      # 7. INSPECCIÓN DE CÓDIGO (la pata de "inspección" de tu diagrama):
+      #    el scanner lee sonar-project.properties + la cobertura del paso 6,
+      #    analiza el código y sube los resultados a SonarQube Cloud.
+      #    El SONAR_TOKEN (secret) lo autentica con tu cuenta.
+      - name: Inspección de código (SonarQube)
+        uses: SonarSource/sonarqube-scan-action@v8.2.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      # 8. FEEDBACK (1ª flecha del diagrama): avisa a Discord el resultado
       #    de la integración, pero SOLO cuando aporta algo:
       #      - En Pull Requests: es el único feedback (no hay deploy).
       #      - O cuando algo FALLÓ: para enterarte aunque no se despliegue.
