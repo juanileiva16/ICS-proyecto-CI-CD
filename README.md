@@ -42,8 +42,9 @@ npm start        # arrancar la app -> http://localhost:3001
 |-------------------------|-----------------------------------------------------|
 | `npm start`             | Arranca el servidor en el puerto 3001               |
 | `npm run build`         | Verifica que todos los módulos cargan sin errores   |
-| `npm test`              | Corre las pruebas con Jest                          |
+| `npm test`              | Corre todas las pruebas con Jest (incluye las specs)|
 | `npm run test:coverage` | Corre las pruebas y genera reporte de cobertura     |
+| `npm run test:specs`    | Corre solo las specs de aceptación (SDD)            |
 | `npm run lint`          | Análisis estático con ESLint                        |
 
 ## API
@@ -60,6 +61,29 @@ Ejemplo de body para `POST /api/predicciones`:
 
 ```json
 { "usuario": "Juani", "equipo": "Argentina" }
+```
+
+## Spec Driven Development (SDD)
+
+Los criterios de aceptación de la app están escritos como **specs ejecutables**
+en formato Gherkin (`tests/features/*.feature`) y se ejecutan con
+[`jest-cucumber`](https://github.com/bencompton/jest-cucumber). No son documentación
+decorativa: **la spec ES el test.**
+
+- Cada escenario `Given/When/Then` describe una regla de negocio en lenguaje natural.
+- Los _step definitions_ (`*.steps.js`) conectan cada paso con la lógica real
+  (`src/predicciones.js`).
+- Corren junto al resto de las pruebas (`npm test`), dentro del pipeline de CI.
+
+**Utilidad en el flujo CI/CD:** si alguien cambia la lógica y viola un criterio
+de aceptación, la spec falla → el job `ci` se pone en rojo → el merge se bloquea
+y llega la notificación a Discord. Así, la especificación y el código nunca se
+desincronizan.
+
+Para correr solo las specs:
+
+```bash
+npm run test:specs
 ```
 
 ## Docker
