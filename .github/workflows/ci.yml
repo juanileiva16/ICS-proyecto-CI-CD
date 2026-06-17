@@ -145,3 +145,48 @@ jobs:
           curl -s -H "Content-Type: application/json" \
             -d "{\"content\":\"$ESTADO\n**Repo:** ${{ github.repository }}\n**Commit:** \`${{ github.sha }}\`\n**Detalle:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
             "${{ secrets.DISCORD_WEBHOOK }}"
+
+  # ──────────────────────────────────────────────────────────────
+  # Tercer job: empaqueta la app en una imagen Docker (la flecha
+  # "Binarios" del diagrama) y la publica en GitHub Container Registry.
+  # ──────────────────────────────────────────────────────────────
+  docker:
+    # Igual que deploy: solo tiene sentido si la integración pasó.
+    needs: ci
+    runs-on: ubuntu-latest
+
+    # Permisos que este job necesita sobre el repo:
+    #   contents: read  -> leer el código.
+    #   packages: write -> publicar la imagen en GHCR (el registro de GitHub).
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Clonar el repositorio
+        uses: actions/checkout@v4
+
+      # Nos logueamos en GHCR SOLO cuando vamos a publicar (push a main).
+      # Usa el GITHUB_TOKEN automático: no hace falta crear ningún secret.
+      - name: Login en GitHub Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Construye la imagen siguiendo el Dockerfile.
+      #   - En Pull Requests: "push: false" => solo CONSTRUYE (verifica que
+      #     el Dockerfile compila), no publica nada.
+      #   - En push a main: "push: true" => construye Y sube la imagen a GHCR.
+      # Etiquetamos con "latest" (la más reciente) y con el SHA del commit
+      # (para poder volver a una versión exacta si hace falta).
+      - name: Construir y publicar la imagen Docker
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/mundial-2026-prediccion:latest
+            ghcr.io/${{ github.repository_owner }}/mundial-2026-prediccion:${{ github.sha }}
