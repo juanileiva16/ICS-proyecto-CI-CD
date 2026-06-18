@@ -98,6 +98,10 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    # Exponemos la URL del despliegue para que el job de smoke test la use.
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+
     # La CLI de Vercel lee estos dos IDs automáticamente desde el entorno.
     # Los valores salen de los secrets que cargaste en GitHub (nunca quedan
     # escritos en texto plano en el repo).
@@ -129,8 +133,14 @@ jobs:
 
       # 3) Sube el paquete ya construido y lo publica en producción.
       #    "--prebuilt" usa lo que armó el paso anterior (no reconstruye).
+      #    Capturamos la URL que devuelve Vercel (última línea) y la
+      #    guardamos como output del job para el smoke test.
       - name: Desplegar a producción
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        id: deploy
+        run: |
+          URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }} | tail -n1)
+          echo "URL desplegada: $URL"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       # FEEDBACK (2ª flecha del diagrama): avisa a Discord el resultado
       #    del despliegue al entorno de entrega (Vercel).
@@ -190,3 +200,41 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/mundial-2026-prediccion:latest
             ghcr.io/${{ github.repository_owner }}/mundial-2026-prediccion:${{ github.sha }}
+
+  # ──────────────────────────────────────────────────────────────
+  # Cuarto job: SMOKE TEST. Prueba la app YA DESPLEGADA en Vercel
+  # (la flecha "pruebas en el entorno de entrega" del diagrama).
+  # No prueba el código: prueba que el despliegue funciona de verdad.
+  # ──────────────────────────────────────────────────────────────
+  smoke-test:
+    # Solo tiene sentido tras un deploy exitoso. Como deploy solo corre
+    # en push a main, este job queda limitado a ese caso.
+    needs: deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      # Le pegamos a /health de la app desplegada. Reintentamos porque el
+      # deploy puede tardar unos segundos en estar disponible.
+      - name: Verificar que la app desplegada responde
+        run: |
+          URL="${{ needs.deploy.outputs.url }}"
+          echo "Probando la app desplegada en: $URL"
+          for intento in 1 2 3 4 5; do
+            if curl -fsS "$URL/health" | grep -q '"status":"ok"'; then
+              echo "✅ Smoke test OK: la app responde correctamente en $URL"
+              exit 0
+            fi
+            echo "Intento $intento sin éxito, reintentando en 5s..."
+            sleep 5
+          done
+          echo "❌ Smoke test FALLÓ: la app desplegada no respondió correctamente."
+          exit 1
+
+      # Avisamos a Discord SOLO si el smoke test falla (en éxito ya avisó el
+      # job deploy, así no duplicamos mensajes).
+      - name: Feedback a Discord (smoke test falló)
+        if: failure()
+        run: |
+          curl -s -H "Content-Type: application/json" \
+            -d "{\"content\":\"❌ Smoke test FALLÓ — la app desplegada no responde\n**Commit:** \`${{ github.sha }}\`\n**Detalle:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+            "${{ secrets.DISCORD_WEBHOOK }}"
