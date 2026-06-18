@@ -18,7 +18,9 @@ function normalizar(texto) {
  * La comparación es tolerante a espacios y mayúsculas/minúsculas.
  */
 function esEquipoValido(equipo) {
-  return true;
+  const objetivo = normalizar(equipo);
+  if (objetivo === '') return false;
+  return EQUIPOS.some((e) => normalizar(e) === objetivo);
 }
 
 /**
